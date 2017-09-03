@@ -320,8 +320,8 @@ if ( !class_exists('WPUF_Zarinpal') ) {
 
             //srart of Zarinpal
             $Amount = intval($price);
-            if ( strtolower($currency) != 'irr' )
-                $Amount = $Amount * 10;
+            if ( strtolower($currency) == 'irr' )
+                $Amount = $Amount/10 ;
 
             $Description = sprintf(__('پرداخت برای آیتم به شماره %s برای کاربر %s | نام آیتم : %s', 'wpuf'), $item_number, $full_user, $item_name);
             $Email = $user_email;
