@@ -487,12 +487,12 @@ if ( !class_exists('WPUF_Zarinpal') ) {
                     //start of Zarinpal
                     $Amount = intval($price);
                     if ( strtolower($currency) != 'irr' )
-                        $Amount = $Amount * 10;
+                        $Amount = $Amount ;
                     //Start of Zarinpal
                 $MerchantID = wpuf_get_option('Zarinpal_merchantid', 'wpuf_payment');
                     try {
                         $MerchantID = $_GET['MerchantID'];
-                        $Amount = 100;
+                        $Amount = $Amount;
                         $Authority = $_GET['Authority'];
                         $getStatus = $_GET['Status'];
                     if ($getStatus == 'OK') {
