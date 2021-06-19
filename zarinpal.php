@@ -341,31 +341,69 @@ if ( !class_exists('WPUF_Zarinpal') ) {
                 $orderId = date('ymdHis');
                 $additionalData = '';
 
-                $client = new SoapClient('https://www.zarinpal.com/pg/services/WebGate/wsdl', ['encoding' => 'UTF-8']);
+              //  $client = new SoapClient('https://www.zarinpal.com/pg/services/WebGate/wsdl', ['encoding' => 'UTF-8']);
                 $localDate = date("Ymd");
                 $localTime = date("His");
 
-                    $res = $client->PaymentRequest([
-                        'MerchantID'  => $MerchantID,
-                        'Amount'      => $Amount,
-                        'Description' => $Description,
-                        'Email'       => $Email,
-                        'Mobile'      => $Mobile,
-                        'CallbackURL' => $Return_url
-                    ]);
-					
-					$Result = $res->Status;
+               /* $res = $client->PaymentRequest([
+                    'MerchantID' => $MerchantID,
+                    'Amount' => $Amount,
+                    'Description' => $Description,
+                    'Email' => $Email,
+                    'Mobile' => $Mobile,
+                    'CallbackURL' => $Return_url
+                ]);*/
+               ///////////////////////////////////////////////////////////////////////////
+               if($Email == ""){
+                   $Email = "0";
+               }
+               if($Mobile == ""){
+                   
+                  $Mobile = "0"; 
+               }
+                $data = array("merchant_id" => $MerchantID,
+                    "amount" => $Amount,
+                    "callback_url" => $Return_url,
+                    "description" => $Description,
+                    "metadata" => [ "email" => $Email,"mobile"=>$Mobile],
+                );
+                $jsonData = json_encode($data);
+                $ch = curl_init('https://api.zarinpal.com/pg/v4/payment/request.json');
+                curl_setopt($ch, CURLOPT_USERAGENT, 'ZarinPal Rest Api v1');
+                curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                    'Content-Type: application/json',
+                    'Content-Length: ' . strlen($jsonData)
+                ));
 
-                    if ($Result == 100) {
-                        $payment_url = 'https://www.zarinpal.com/pg/StartPay/';
-                        header("Location: $payment_url".$res->Authority);
-                    } else {
-                wp_die(sprintf(__('متاسفانه پرداخت به دلیل خطای زیر امکان پذیر نمی باشد : <br/><br/><b> %s </b>', 'wpuf'), $Result));
-                        return;
-                    }
-                }
-            
-             catch (Exception $ex) {
+                $result = curl_exec($ch);
+                $err = curl_error($ch);
+                $result = json_decode($result, true, JSON_PRETTY_PRINT);
+                curl_close($ch);
+
+                /// ///////////////////////////////////////////////////////////////////////
+           
+             if (!empty($result['errors'])){
+
+                 echo'Error Code: ' . $result['errors']['code'];
+                 echo'message: ' .  $result['errors']['message'];
+             }else {
+                 $Result = $result['data']['code'];
+
+                 if ($Result == 100) {
+                     $payment_url = 'https://www.zarinpal.com/pg/StartPay/';
+                     header("Location: $payment_url".$result['data']["authority"]);
+                 } else {
+                     wp_die(sprintf(__('متاسفانه پرداخت به دلیل خطای زیر امکان پذیر نمی باشد : <br/><br/><b> %s </b>', 'wpuf'), $Result));
+                     return;
+                 }
+             }
+
+            }
+
+            catch (Exception $ex) {
                 $Message = $ex->getMessage();
             }
             //end of Zarinpal
@@ -489,58 +527,86 @@ if ( !class_exists('WPUF_Zarinpal') ) {
                     if ( strtolower($currency) != 'irr' )
                         $Amount = $Amount ;
                     //Start of Zarinpal
-                $MerchantID = wpuf_get_option('Zarinpal_merchantid', 'wpuf_payment');
+                    $MerchantID = wpuf_get_option('Zarinpal_merchantid', 'wpuf_payment');
                     try {
                         $MerchantID = $_GET['MerchantID'];
                         $Amount = $Amount;
                         $Authority = $_GET['Authority'];
                         $getStatus = $_GET['Status'];
-                    if ($getStatus == 'OK') {
-                        $MerchantID = wpuf_get_option('Zarinpal_merchantid', 'wpuf_payment');
-                        //$MerchantID = wpuf_get_option('Zarinpal_merchantid', 'wpuf_payment');
-                        $client = new SoapClient('https://www.zarinpal.com/pg/services/WebGate/wsdl', ['encoding' => 'UTF-8']);
-                        $result = $client->PaymentVerification(
-                        [
-                        'MerchantID'  => $MerchantID,
-                        'Amount'      => $Amount,
-                        'Authority' => $Authority,
-                        ]
-                        );
-                        
-                     $Result = $result->Status;
-                    if ($Result == 100) {
-                     //            wp_die(sprintf(__('اپرداخت موفق: <br/><br/><b> %s </b>', 'wpuf'), $Result));
-                     //           $this->paymentComplete($payment);
-                                                    $Status = 'completed';
-                                                    $transaction_id = rand(10000, 99999);
-                                                    $fault = 0;
+                        if ($getStatus == 'OK') {
+                            $MerchantID = wpuf_get_option('Zarinpal_merchantid', 'wpuf_payment');
+                            
+                    
+                          /*  $client = new SoapClient('https://www.zarinpal.com/pg/services/WebGate/wsdl', ['encoding' => 'UTF-8']);
+                            $result = $client->PaymentVerification(
+                                [
+                                    'MerchantID'  => $MerchantID,
+                                    'Amount'      => $Amount,
+                                    'Authority' => $Authority,
+                                ]
+                            );*/
+                          //////////////////////////////////////////////////////////////////////
+                            $data = array("merchant_id" => $MerchantID, "authority" => $Authority, "amount" => $Amount);
+                            $jsonData = json_encode($data);
+                            $ch = curl_init('https://api.zarinpal.com/pg/v4/payment/verify.json');
+                            curl_setopt($ch, CURLOPT_USERAGENT, 'ZarinPal Rest Api v4');
+                            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
+                            curl_setopt($ch, CURLOPT_POSTFIELDS, $jsonData);
+                            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                                'Content-Type: application/json',
+                                'Content-Length: ' . strlen($jsonData)
+                            ));
+                            $result = curl_exec($ch);
+                            curl_close($ch);
+                            $result = json_decode($result, true);
+                            /// /////////////////////////////////////////////////////////////////
+                            if(!empty($result['errors']['code'])){
+                                $Result = $result['errors']['code'];
 
-                     //       } else {
-                      //          wp_die(sprintf(__('خطایی به هنگام پرداخت پیش آمده. کد خطا عبارت است از :'.$Result.' . برای آگاهی از دلیل خطا کد آن $MerchantID$Authority$Amount رپذیر نمی باشد : <br/><br/><b> %s </b>', 'wpuf'), $Result));
-                           }
-                        if ( $Result != 100 ) {
-                            if ( $Result == 22 || $Result == '22' ) {
-                                $Status = 'cancelled';
-                                $fault = 22;
-                            } else {
+                                if ( $Result == -51 || $Result == '-51' ) {
+                                    $Status = 'cancelled';
+                                    $fault = -51;
+                                } else {
+                                    $Status = 'failed';
+                                    $fault = sanitize_text_field($_POST['Status']);
+                                }
+                            }
+                            $Result = $result['data']['code'];
+                            if ($Result == 100) {
+                                //            wp_die(sprintf(__('اپرداخت موفق: <br/><br/><b> %s </b>', 'wpuf'), $Result));
+                                //           $this->paymentComplete($payment);
+                                $Status = 'completed';
+                                //$transaction_id = rand(10000, 99999);
+                                $transaction_id=$result['data']['ref_id'];
+                                $fault = 0;
+
+                                //       } else {
+                                //          wp_die(sprintf(__('خطایی به هنگام پرداخت پیش آمده. کد خطا عبارت است از :'.$Result.' . برای آگاهی از دلیل خطا کد آن $MerchantID$Authority$Amount رپذیر نمی باشد : <br/><br/><b> %s </b>', 'wpuf'), $Result));
+                            }
+                            /*if ( $Result != 100 ) {
+                                if ( $Result == 22 || $Result == '22' ) {
+                                    $Status = 'cancelled';
+                                    $fault = 22;
+                                } else {
+                                    $Status = 'failed';
+                                    $fault = sanitize_text_field($_POST['Status']);
+                                }
+                            }*/
+                            if ( empty($Status) || ( $Status != 'cancelled' && $Status != 'completed' ) ) {
                                 $Status = 'failed';
+                            }
+                            if ( $Status == 'failed' ) {
                                 $fault = sanitize_text_field($_POST['Status']);
-                            }
-                        } 
-                        if ( empty($Status) || ( $Status != 'cancelled' && $Status != 'completed' ) ) {
-                            $Status = 'failed';
-                        }
-                        if ( $Status == 'failed' ) {
-                            $fault = sanitize_text_field($_POST['Status']);
-                            if ( $_POST['Status'] == 17 || $_POST['Status'] == '17' ) {
-                                $Status = 'cancelled';
-                                $fault = 17;
+                                if ( $_POST['Status'] == 17 || $_POST['Status'] == '17' ) {
+                                    $Status = 'cancelled';
+                                    $fault = 17;
+                                }
                             }
                         }
-}
                     } catch (Exception $ex) {
-                     //   $Message = $ex->getMessage();
-                     //   $Status = 'failed';
+                        //   $Message = $ex->getMessage();
+                        //   $Status = 'failed';
                     }
                     //End of BankZarinpal
                     $status = $Status;
